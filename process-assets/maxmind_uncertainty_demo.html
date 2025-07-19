@@ -1,0 +1,496 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MaxMind GeoIP2 Uncertainty Demo</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8fafc;
+            color: #1e293b;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #0f172a;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 40px;
+            font-size: 18px;
+        }
+        
+        .demo-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .comparison-item {
+            background: #f8fafc;
+            padding: 25px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .comparison-item.without-uncertainty {
+            border-left-color: #ef4444;
+        }
+        
+        .comparison-item.with-uncertainty {
+            border-left-color: #10b981;
+        }
+        
+        .comparison-item h3 {
+            margin-top: 0;
+            color: #0f172a;
+        }
+        
+        .map-container {
+            height: 400px;
+            margin: 20px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        .code-block .key {
+            color: #7dd3fc;
+        }
+        
+        .code-block .string {
+            color: #86efac;
+        }
+        
+        .code-block .number {
+            color: #fbbf24;
+        }
+        
+        .code-block .comment {
+            color: #94a3b8;
+        }
+        
+        .info-box {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .info-box h4 {
+            margin-top: 0;
+            color: #1e40af;
+        }
+        
+        .accuracy-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .high-confidence {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .medium-confidence {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .low-confidence {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+        
+        .point-marker {
+            background: #ef4444;
+        }
+        
+        .uncertainty-area {
+            background: #10b981;
+            opacity: 0.3;
+        }
+        
+        .view-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        
+        .view-btn {
+            padding: 12px 24px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .view-btn:hover {
+            border-color: #3b82f6;
+        }
+        
+        .view-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .current-view-info {
+            margin-bottom: 20px;
+        }
+        
+        .view-info {
+            display: none;
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .view-info.active {
+            display: block;
+        }
+        
+        .view-info h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>MaxMind GeoIP2 Uncertainty Demo</h1>
+        <p class="subtitle">Comparing geolocation results with and without uncertainty parameters</p>
+        
+        <div class="demo-section">
+            <h2>Sample Data Response</h2>
+            <p>Based on the XML data provided by the Bloomington Police Department, IN, here's how the data would be presented:</p>
+            
+            <div class="comparison-grid">
+                <div class="comparison-item without-uncertainty">
+                    <h3>❌ Without Uncertainty</h3>
+                    <div class="code-block">
+{<br>
+  <span class="key">"city"</span>: <span class="string">"Bloomington"</span>,<br>
+  <span class="key">"region"</span>: <span class="string">"Indiana"</span>,<br>
+  <span class="key">"country"</span>: <span class="string">"United States"</span>,<br>
+  <span class="key">"latitude"</span>: <span class="number">39.1397</span>,<br>
+  <span class="key">"longitude"</span>: <span class="number">-86.5141</span><br>
+}
+                    </div>
+                    <p><strong>User sees:</strong> "Located in Bloomington, IN"</p>
+                    <p><strong>Implication:</strong> Appears as precise, definitive location</p>
+                </div>
+                
+                <div class="comparison-item with-uncertainty">
+                    <h3>✅ With Uncertainty</h3>
+                    <div class="code-block">
+{<br>
+  <span class="key">"city"</span>: <span class="string">"Bloomington"</span>,<br>
+  <span class="key">"region"</span>: <span class="string">"Indiana"</span>,<br>
+  <span class="key">"country"</span>: <span class="string">"United States"</span>,<br>
+  <span class="key">"latitude"</span>: <span class="number">39.1397</span>,<br>
+  <span class="key">"longitude"</span>: <span class="number">-86.5141</span>,<br>
+  <span class="key">"accuracy_radius"</span>: <span class="number">50</span>,<br>
+  <span class="key">"confidence"</span>: {<br>
+    <span class="key">"city"</span>: <span class="number">60</span>,<br>
+    <span class="key">"region"</span>: <span class="number">90</span>,<br>
+    <span class="key">"country"</span>: <span class="number">99</span><br>
+  }<br>
+}
+                    </div>
+                    <p><strong>User sees:</strong> "Likely within 50km of Bloomington, IN"</p>
+                    <p><strong>Implication:</strong> Shows probable area, not exact location</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h2>Visual Comparison</h2>
+            <p>Here's how these two approaches would render on a map:</p>
+            
+            <div class="view-controls">
+                <button id="preciseBtn" class="view-btn active">Precise Point View</button>
+                <button id="uncertaintyBtn" class="view-btn">Uncertainty View</button>
+                <button id="overlayBtn" class="view-btn">Overlay Both</button>
+            </div>
+            
+            <div class="current-view-info">
+                <div id="preciseInfo" class="view-info active">
+                    <h4>❌ Precise Point View</h4>
+                    <p>Shows location as a single definitive point. Users assume pinpoint accuracy.</p>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color point-marker"></div>
+                            <span>Exact location (misleading)</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="uncertaintyInfo" class="view-info">
+                    <h4>✅ Uncertainty View</h4>
+                    <p>Shows probable area with 50km radius. More honest about location accuracy.</p>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color uncertainty-area"></div>
+                            <span>Probable area (50km radius)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #10b981;"></div>
+                            <span>Estimated center</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="overlayInfo" class="view-info">
+                    <h4>📊 Overlay Comparison</h4>
+                    <p>Shows both approaches simultaneously to highlight the difference.</p>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color point-marker"></div>
+                            <span>Precise point (without uncertainty)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color uncertainty-area"></div>
+                            <span>Probable area (50km radius)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="map-container" id="map"></div>
+        </div>
+        
+        <div class="demo-section">
+            <h2>Confidence Levels Breakdown</h2>
+            <div class="info-box">
+                <h4>Understanding Confidence Scores</h4>
+                <p><strong>Country: 99%</strong> <span class="accuracy-indicator high-confidence">Very High</span><br>
+                <em>Nearly certain this IP is in the United States</em></p>
+                
+                <p><strong>Region: 90%</strong> <span class="accuracy-indicator high-confidence">High</span><br>
+                <em>Very confident this IP is in Indiana</em></p>
+                
+                <p><strong>City: 60%</strong> <span class="accuracy-indicator medium-confidence">Medium</span><br>
+                <em>Moderately confident it's in Bloomington specifically</em></p>
+                
+                <p><strong>Accuracy Radius: 50km</strong><br>
+                <em>The actual location is likely within 50 kilometers of the coordinates</em></p>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h2>Implementation Impact</h2>
+            <div class="comparison-grid">
+                <div class="comparison-item without-uncertainty">
+                    <h3>Without Uncertainty</h3>
+                    <ul>
+                        <li>Users assume pinpoint accuracy</li>
+                        <li>May lead to incorrect business decisions</li>
+                        <li>Privacy concerns about precise tracking</li>
+                        <li>No indication of data reliability</li>
+                    </ul>
+                </div>
+                
+                <div class="comparison-item with-uncertainty">
+                    <h3>With Uncertainty</h3>
+                    <ul>
+                        <li>Users understand approximate nature</li>
+                        <li>Enables better risk assessment</li>
+                        <li>More transparent about limitations</li>
+                        <li>Allows for confidence-based logic</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h2>Code Example: Handling Uncertainty</h2>
+            <div class="code-block">
+<span class="comment">// Without uncertainty handling</span><br>
+<span class="key">function</span> displayLocation(data) {<br>
+  return `User located in ${data.city}, ${data.region}`;<br>
+}<br>
+<br>
+<span class="comment">// With uncertainty handling</span><br>
+<span class="key">function</span> displayLocationWithUncertainty(data) {<br>
+  <span class="key">const</span> cityConfidence = data.confidence?.city || <span class="number">0</span>;<br>
+  <span class="key">const</span> radius = data.accuracy_radius || <span class="number">1000</span>;<br>
+  <br>
+  <span class="key">if</span> (cityConfidence > <span class="number">80</span>) {<br>
+    return `User located in ${data.city}, ${data.region}`;<br>
+  } <span class="key">else if</span> (cityConfidence > <span class="number">50</span>) {<br>
+    return `User likely within ${radius}km of ${data.city}, ${data.region}`;<br>
+  } <span class="key">else</span> {<br>
+    return `User located somewhere in ${data.region}, ${data.country}`;<br>
+  }<br>
+}
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize the map
+        const map = L.map('map').setView([39.1397, -86.5141], 10);
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Create markers and circles but don't add them to map yet
+        const preciseMarker = L.marker([39.1397, -86.5141], {
+            icon: L.icon({
+                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiNlZjQ0NDQiLz4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iNCIgZmlsbD0iI2ZmZmZmZiIvPgo8L3N2Zz4K',
+                iconSize: [16, 16],
+                iconAnchor: [8, 8]
+            })
+        });
+        
+        const uncertaintyCircle = L.circle([39.1397, -86.5141], {
+            color: '#10b981',
+            fillColor: '#10b981',
+            fillOpacity: 0.2,
+            radius: 50000 // 50km in meters
+        });
+        
+        const centerMarker = L.marker([39.1397, -86.5141], {
+            icon: L.icon({
+                iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIGZpbGw9IiMxMGI5ODEiLz4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iNCIgZmlsbD0iI2ZmZmZmZiIvPgo8L3N2Zz4K',
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            })
+        });
+        
+        // Add popups
+        preciseMarker.bindPopup('<b>Without Uncertainty</b><br>Precise location: Bloomington, IN<br>Appears definitive');
+        uncertaintyCircle.bindPopup('<b>With Uncertainty</b><br>Probable area: 50km radius<br>Confidence: City 60%, Region 90%');
+        centerMarker.bindPopup('<b>Estimated Center</b><br>Coordinates: 39.1397, -86.5141<br>Accuracy radius: 50km');
+        
+        // View control functions
+        function showPreciseView() {
+            map.eachLayer(function(layer) {
+                if (layer !== map._layers[Object.keys(map._layers)[0]]) { // Keep tile layer
+                    map.removeLayer(layer);
+                }
+            });
+            
+            preciseMarker.addTo(map);
+            map.setView([39.1397, -86.5141], 12);
+            
+            // Update active states
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('preciseBtn').classList.add('active');
+            document.querySelectorAll('.view-info').forEach(info => info.classList.remove('active'));
+            document.getElementById('preciseInfo').classList.add('active');
+        }
+        
+        function showUncertaintyView() {
+            map.eachLayer(function(layer) {
+                if (layer !== map._layers[Object.keys(map._layers)[0]]) { // Keep tile layer
+                    map.removeLayer(layer);
+                }
+            });
+            
+            uncertaintyCircle.addTo(map);
+            centerMarker.addTo(map);
+            map.setView([39.1397, -86.5141], 9);
+            
+            // Update active states
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('uncertaintyBtn').classList.add('active');
+            document.querySelectorAll('.view-info').forEach(info => info.classList.remove('active'));
+            document.getElementById('uncertaintyInfo').classList.add('active');
+        }
+        
+        function showOverlayView() {
+            map.eachLayer(function(layer) {
+                if (layer !== map._layers[Object.keys(map._layers)[0]]) { // Keep tile layer
+                    map.removeLayer(layer);
+                }
+            });
+            
+            uncertaintyCircle.addTo(map);
+            centerMarker.addTo(map);
+            preciseMarker.addTo(map);
+            map.setView([39.1397, -86.5141], 9);
+            
+            // Update active states
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('overlayBtn').classList.add('active');
+            document.querySelectorAll('.view-info').forEach(info => info.classList.remove('active'));
+            document.getElementById('overlayInfo').classList.add('active');
+        }
+        
+        // Add event listeners
+        document.getElementById('preciseBtn').addEventListener('click', showPreciseView);
+        document.getElementById('uncertaintyBtn').addEventListener('click', showUncertaintyView);
+        document.getElementById('overlayBtn').addEventListener('click', showOverlayView);
+        
+        // Initialize with precise view
+        showPreciseView();
+    </script>
+</body>
+</html>
