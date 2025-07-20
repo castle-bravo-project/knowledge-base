@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metadata Extraction Tool Validation - Forensic Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            color: #2c3e50;
+        }
+        
+        .header {
+            background: #34495e;
+            color: white;
+            padding: 1.5rem 0;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 300;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .warning-banner {
+            background: #e74c3c;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(231, 76, 60, 0.2);
+        }
+        
+        .warning-banner h3 {
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
+        }
+        
+        .upload-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .upload-area {
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 3rem 2rem;
+            background: #f8f9ff;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover {
+            border-color: #2980b9;
+            background: #e8f4fd;
+        }
+        
+        .upload-area.dragover {
+            border-color: #27ae60;
+            background: #e8f5e8;
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            color: #3498db;
+            margin-bottom: 1rem;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .comparison-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .tool-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            min-height: 600px;
+        }
+        
+        .tool-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        .tool-status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.75rem;
+        }
+        
+        .status-compromised {
+            background: #e74c3c;
+            box-shadow: 0 0 10px rgba(231, 76, 60, 0.3);
+        }
+        
+        .status-authentic {
+            background: #27ae60;
+            box-shadow: 0 0 10px rgba(39, 174, 96, 0.3);
+        }
+        
+        .tool-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        
+        .results-area {
+            min-height: 400px;
+        }
+        
+        .processing {
+            text-align: center;
+            padding: 2rem;
+            color: #7f8c8d;
+        }
+        
+        .spinner {
+            border: 3px solid #ecf0f1;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .metadata-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        .metadata-table th,
+        .metadata-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        .metadata-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .metadata-table td {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .fake-data {
+            background: rgba(231, 76, 60, 0.1);
+            color: #c0392b;
+        }
+        
+        .authentic-data {
+            background: rgba(39, 174, 96, 0.1);
+            color: #27ae60;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 2rem;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        
+        .analysis-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+        
+        .analysis-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            border-left: 4px solid #3498db;
+        }
+        
+        .analysis-card h4 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+        
+        .analysis-card ul {
+            color: #34495e;
+            line-height: 1.6;
+        }
+        
+        .analysis-card li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+            margin-top: 1rem;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+        }
+        
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .sample-images {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .sample-btn {
+            background: #95a5a6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .sample-btn:hover {
+            background: #7f8c8d;
+        }
+        
+        @media (max-width: 768px) {
+            .comparison-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .sample-images {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Metadata Extraction Tool Validation</h1>
+        <p>Demonstrating the critical importance of verifying forensic metadata extraction tools</p>
+    </div>
+
+    <div class="container">
+        <div class="warning-banner">
+            <h3>⚠️ Educational Demonstration</h3>
+            <p>This tool shows how compromised metadata extraction software can fabricate evidence. Always validate your forensic tools before using them in investigations.</p>
+        </div>
+
+        <div class="upload-section">
+            <h3>Upload an Image File for Metadata Analysis</h3>
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <p>Drag and drop an image file here, or click to select</p>
+                <p style="font-size: 0.9rem; color: #7f8c8d; margin-top: 0.5rem;">Supported formats: JPG, PNG, GIF, WEBP</p>
+                <input type="file" id="fileInput" class="file-input" accept="image/*">
+            </div>
+            
+            <div class="sample-images">
+                <p style="margin-right: 1rem;">Or try sample images:</p>
+                <button class="sample-btn" onclick="loadSampleImage('camera')">📷 Camera Photo</button>
+                <button class="sample-btn" onclick="loadSampleImage('phone')">📱 Phone Photo</button>
+                <button class="sample-btn" onclick="loadSampleImage('screenshot')">🖥️ Screenshot</button>
+                <button class="sample-btn" onclick="loadSampleImage('edited')">✏️ Edited Image</button>
+            </div>
+        </div>
+
+        <div class="comparison-container" id="comparisonContainer" style="display: none;">
+            <div class="tool-panel">
+                <div class="tool-header">
+                    <div class="tool-status status-compromised"></div>
+                    <div class="tool-title">Compromised Metadata Extractor v3.2</div>
+                </div>
+                <div class="results-area" id="compromisedResults">
+                    <div class="processing">
+                        <div class="spinner"></div>
+                        <p>Processing with compromised tool...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tool-panel">
+                <div class="tool-header">
+                    <div class="tool-status status-authentic"></div>
+                    <div class="tool-title">Authenticated Metadata Extractor Pro</div>
+                </div>
+                <div class="results-area" id="authenticResults">
+                    <div class="processing">
+                        <div class="spinner"></div>
+                        <p>Processing with authenticated tool...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="analysis-section" id="analysisSection" style="display: none;">
+            <h3>Forensic Impact Analysis</h3>
+            <div class="analysis-grid">
+                <div class="analysis-card">
+                    <h4>🔍 Key Differences Identified</h4>
+                    <ul id="differencesList">
+                        <li>Analyzing tool outputs...</li>
+                    </ul>
+                </div>
+                
+                <div class="analysis-card">
+                    <h4>⚖️ Legal Implications</h4>
+                    <ul>
+                        <li>Fabricated timestamps can alter case timelines</li>
+                        <li>False GPS data can mislead investigations</li>
+                        <li>Manipulated camera info affects evidence authenticity</li>
+                        <li>Court admissibility may be compromised</li>
+                    </ul>
+                </div>
+                
+                <div class="analysis-card">
+                    <h4>🛡️ Best Practices</h4>
+                    <ul>
+                        <li>Always cross-validate metadata with multiple tools</li>
+                        <li>Verify tool authenticity and digital signatures</li>
+                        <li>Document tool versions and validation procedures</li>
+                        <li>Maintain hash verification of extraction software</li>
+                    </ul>
+                </div>
+                
+                <div class="analysis-card">
+                    <h4>🎯 Professional Standards</h4>
+                    <ul>
+                        <li>NIST guidelines for digital forensic tool testing</li>
+                        <li>ISO/IEC 27037 evidence handling standards</li>
+                        <li>Court-accepted validation methodologies</li>
+                        <li>Chain of custody documentation requirements</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <button class="btn" onclick="generateReport()">📄 Generate Comparison Report</button>
+        </div>
+    </div>
+
+    <script>
+        let currentFile = null;
+        let processingTimer = null;
+
+        // Sample metadata templates for different image types
+        const sampleMetadata = {
+            camera: {
+                authentic: {
+                    'File Name': 'IMG_20241015_143022.jpg',
+                    'File Size': '2.4 MB',
+                    'Date Taken': '2024-10-15 14:30:22',
+                    'Camera Make': 'Canon',
+                    'Camera Model': 'EOS R5',
+                    'Lens': 'RF 24-70mm F2.8 L IS USM',
+                    'ISO Speed': '400',
+                    'Aperture': 'f/2.8',
+                    'Shutter Speed': '1/125',
+                    'GPS Latitude': '40.7589° N',
+                    'GPS Longitude': '73.9851° W',
+                    'Software': 'Canon Digital Photo Professional',
+                    'Color Space': 'sRGB',
+                    'Resolution': '8192 x 5464'
+                },
+                compromised: {
+                    'File Name': 'IMG_20241015_143022.jpg',
+                    'File Size': '2.4 MB',
+                    'Date Taken': new Date().toISOString().replace('T', ' ').slice(0, 19),
+                    'Camera Make': 'Apple',
+                    'Camera Model': 'iPhone 15 Pro Max',
+                    'Lens': 'iPhone 15 Pro Max back triple camera',
+                    'ISO Speed': '100',
+                    'Aperture': 'f/1.78',
+                    'Shutter Speed': '1/60',
+                    'GPS Latitude': '34.0522° N',
+                    'GPS Longitude': '118.2437° W',
+                    'Software': 'iOS 17.1.2',
+                    'Color Space': 'Display P3',
+                    'Resolution': '4032 x 3024'
+                }
+            },
+            phone: {
+                authentic: {
+                    'File Name': 'IMG_2024-07-20_091545.jpg',
+                    'File Size': '1.8 MB',
+                    'Date Taken': '2024-07-20 09:15:45',
+                    'Camera Make': 'Samsung',
+                    'Camera Model': 'SM-G998U',
+                    'ISO Speed': '50',
+                    'Aperture': 'f/1.8',
+                    'Shutter Speed': '1/240',
+                    'GPS Latitude': '37.7749° N',
+                    'GPS Longitude': '122.4194° W',
+                    'Software': 'G998USQU5FVG1',
+                    'Color Space': 'sRGB',
+                    'Resolution': '4000 x 3000'
+                },
+                compromised: {
+                    'File Name': 'IMG_2024-07-20_091545.jpg',
+                    'File Size': '1.8 MB',
+                    'Date Taken': '2024-06-15 22:30:12',
+                    'Camera Make': 'Apple',
+                    'Camera Model': 'iPhone 14 Pro',
+                    'ISO Speed': '200',
+                    'Aperture': 'f/1.6',
+                    'Shutter Speed': '1/120',
+                    'GPS Latitude': '40.0583° N',
+                    'GPS Longitude': '74.4057° W',
+                    'Software': 'iOS 16.5',
+                    'Color Space': 'Display P3',
+                    'Resolution': '4032 x 3024'
+                }
+            },
+            screenshot: {
+                authentic: {
+                    'File Name': 'Screenshot_2024-07-20_10-23-15.png',
+                    'File Size': '847 KB',
+                    'Date Created': '2024-07-20 10:23:15',
+                    'Software': 'Windows 11 Snipping Tool',
+                    'Color Space': 'sRGB',
+                    'Resolution': '1920 x 1080',
+                    'Bit Depth': '24'
+                },
+                compromised: {
+                    'File Name': 'Screenshot_2024-07-20_10-23-15.png',
+                    'File Size': '847 KB',
+                    'Date Created': '2024-05-10 15:45:22',
+                    'Date Taken': '2024-05-10 15:45:20',
+                    'Camera Make': 'Canon',
+                    'Camera Model': 'EOS 5D Mark IV',
+                    'GPS Latitude': '51.5074° N',
+                    'GPS Longitude': '0.1278° W',
+                    'Software': 'Adobe Photoshop CC 2024',
+                    'Color Space': 'Adobe RGB',
+                    'Resolution': '1920 x 1080',
+                    'ISO Speed': '800',
+                    'Aperture': 'f/4.0'
+                }
+            },
+            edited: {
+                authentic: {
+                    'File Name': 'edited_photo_final.jpg',
+                    'File Size': '3.2 MB',
+                    'Date Created': '2024-07-18 16:42:33',
+                    'Date Modified': '2024-07-18 16:45:18',
+                    'Software': 'Adobe Photoshop 2024',
+                    'Color Space': 'Adobe RGB',
+                    'Resolution': '6000 x 4000',
+                    'Edit History': 'Levels, Curves, Unsharp Mask'
+                },
+                compromised: {
+                    'File Name': 'edited_photo_final.jpg',
+                    'File Size': '3.2 MB',
+                    'Date Created': '2024-07-18 16:42:33',
+                    'Date Taken': '2024-07-18 14:30:15',
+                    'Camera Make': 'Nikon',
+                    'Camera Model': 'D850',
+                    'Lens': 'NIKKOR 85mm f/1.4G',
+                    'ISO Speed': '200',
+                    'Aperture': 'f/2.0',
+                    'Shutter Speed': '1/200',
+                    'GPS Latitude': '48.8566° N',
+                    'GPS Longitude': '2.3522° E',
+                    'Software': 'Nikon Capture NX-D',
+                    'Color Space': 'sRGB',
+                    'Resolution': '6000 x 4000'
+                }
+            }
+        };
+
+        // Initialize event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('drop', handleDrop);
+            fileInput.addEventListener('change', handleFileSelect);
+        });
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            document.getElementById('uploadArea').classList.add('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            document.getElementById('uploadArea').classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                processFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            if (e.target.files.length > 0) {
+                processFile(e.target.files[0]);
+            }
+        }
+
+        function loadSampleImage(type) {
+            currentFile = { name: `sample_${type}.jpg`, type: type };
+            processFile(currentFile);
+        }
+
+        function processFile(file) {
+            currentFile = file;
+            document.getElementById('comparisonContainer').style.display = 'grid';
+            
+            // Reset results areas
+            document.getElementById('compromisedResults').innerHTML = `
+                <div class="processing">
+                    <div class="spinner"></div>
+                    <p>Processing with compromised tool...</p>
+                </div>
+            `;
+            
+            document.getElementById('authenticResults').innerHTML = `
+                <div class="processing">
+                    <div class="spinner"></div>
+                    <p>Processing with authenticated tool...</p>
+                </div>
+            `;
+
+            // Simulate processing with different timing
+            setTimeout(() => {
+                displayCompromisedResults();
+            }, 2000);
+
+            setTimeout(() => {
+                displayAuthenticResults();
+            }, 3500);
+
+            setTimeout(() => {
+                showAnalysis();
+            }, 4000);
+        }
+
+        function displayCompromisedResults() {
+            const type = currentFile.type || 'camera';
+            const metadata = sampleMetadata[type]?.compromised || sampleMetadata.camera.compromised;
+            
+            let tableHTML = `
+                <h4>Metadata Extraction Results</h4>
+                <table class="metadata-table">
+                    <thead>
+                        <tr><th>Field</th><th>Value</th></tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            for (const [key, value] of Object.entries(metadata)) {
+                tableHTML += `
+                    <tr>
+                        <td>${key}</td>
+                        <td class="fake-data">${value}</td>
+                    </tr>
+                `;
+            }
+            
+            tableHTML += `</tbody></table>`;
+            
+            document.getElementById('compromisedResults').innerHTML = tableHTML;
+        }
+
+        function displayAuthenticResults() {
+            const type = currentFile.type || 'camera';
+            
+            if (type === 'screenshot' && Math.random() > 0.3) {
+                document.getElementById('authenticResults').innerHTML = `
+                    <h4>Metadata Extraction Results</h4>
+                    <div class="no-data">
+                        <p>⚠️ Limited metadata available</p>
+                        <p>Screenshots typically contain minimal EXIF data</p>
+                    </div>
+                    <table class="metadata-table">
+                        <thead>
+                            <tr><th>Field</th><th>Value</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>File Name</td><td class="authentic-data">${sampleMetadata[type].authentic['File Name']}</td></tr>
+                            <tr><td>File Size</td><td class="authentic-data">${sampleMetadata[type].authentic['File Size']}</td></tr>
+                            <tr><td>Date Created</td><td class="authentic-data">${sampleMetadata[type].authentic['Date Created']}</td></tr>
+                            <tr><td>Resolution</td><td class="authentic-data">${sampleMetadata[type].authentic['Resolution']}</td></tr>
+                        </tbody>
+                    </table>
+                `;
+                return;
+            }
+            
+            const metadata = sampleMetadata[type]?.authentic || sampleMetadata.camera.authentic;
+            
+            let tableHTML = `
+                <h4>Metadata Extraction Results</h4>
+                <table class="metadata-table">
+                    <thead>
+                        <tr><th>Field</th><th>Value</th></tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            for (const [key, value] of Object.entries(metadata)) {
+                tableHTML += `
+                    <tr>
+                        <td>${key}</td>
+                        <td class="authentic-data">${value}</td>
+                    </tr>
+                `;
+            }
+            
+            tableHTML += `</tbody></table>`;
+            
+            document.getElementById('authenticResults').innerHTML = tableHTML;
+        }
+
+        function showAnalysis() {
+            const type = currentFile.type || 'camera';
+            const differences = [];
+            
+            const compromisedData = sampleMetadata[type]?.compromised || sampleMetadata.camera.compromised;
+            const authenticData = sampleMetadata[type]?.authentic || sampleMetadata.camera.authentic;
+            
+            // Analyze key differences
+            if (compromisedData['Date Taken'] !== authenticData['Date Taken']) {
+                differences.push('Timestamp fabrication detected - dates don\'t match');
+            }
+            
+            if (compromisedData['Camera Make'] !== authenticData['Camera Make']) {
+                differences.push('Camera manufacturer discrepancy found');
+            }
+            
+            if (compromisedData['GPS Latitude']) {
+                if (!authenticData['GPS Latitude'] || compromisedData['GPS Latitude'] !== authenticData['GPS Latitude']) {
+                    differences.push('GPS coordinates manipulation detected');
+                }
+            }
+            
+            if (type === 'screenshot' && compromisedData['Camera Make']) {
+                differences.push('Camera metadata fabricated for non-camera image');
+            }
+            
+            // Additional synthetic differences
+            differences.push('Software version inconsistencies identified');
+            differences.push('Color space profile mismatch detected');
+            
+            document.getElementById('differencesList').innerHTML = differences.map(diff => `<li>${diff}</li>`).join('');
+            document.getElementById('analysisSection').style.display = 'block';
+        }
+
+        function generateReport() {
+            const report = `
+FORENSIC METADATA EXTRACTION COMPARISON REPORT
+Generated: ${new Date().toLocaleString()}
+
+FILE ANALYZED: ${currentFile.name || 'Sample Image'}
+
+COMPROMISED TOOL RESULTS:
+- Tool: Compromised Metadata Extractor v3.2
+- Status: UNRELIABLE - Fabricated data detected
+- Risk Level: HIGH - Evidence integrity compromised
+
+AUTHENTIC TOOL RESULTS:
+- Tool: Authenticated Metadata Extractor Pro
+- Status: VERIFIED - Consistent with file properties
+- Risk Level: LOW - Reliable extraction
+
+RECOMMENDATIONS:
+1. Discontinue use of compromised extraction tool
+2. Re-process all evidence with verified software
+3. Update forensic tool validation procedures
+4. Document all tool verification steps in case files
+
+LEGAL IMPLICATIONS:
+- Evidence admissibility may be questioned
+- Chain of custody documentation required
+- Expert testimony on tool reliability needed
+- Court may require independent verification
+            `;
+            
+            const blob = new Blob([report], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `metadata_comparison_report_${Date.now()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
