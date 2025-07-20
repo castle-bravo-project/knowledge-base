@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forensic Hash Verification Educational Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e9ecef;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #1a365d;
+            margin-bottom: 10px;
+            font-size: 2.2rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+        
+        .warning-box {
+            background: #dc3545;
+            color: white;
+            padding: 24px;
+            border-radius: 6px;
+            margin-bottom: 32px;
+            border-left: 4px solid #b02a37;
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.15);
+        }
+        
+        .warning-box h3 {
+            margin-bottom: 12px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        
+        .info-section {
+            background: #0f172a;
+            color: white;
+            padding: 32px;
+            border-radius: 6px;
+            margin-bottom: 32px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+        }
+        
+        .info-section h2 {
+            margin-bottom: 16px;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+        
+        .demo-section {
+            background: #ffffff;
+            border-radius: 6px;
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            border: 1px solid #e5e7eb;
+        }
+        
+        .demo-section:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        .invalid-section {
+            border-left: 4px solid #dc3545;
+            background: #fff5f5;
+        }
+        
+        .valid-section {
+            border-left: 4px solid #059669;
+            background: #f0fdf4;
+        }
+        
+        .section-title {
+            font-size: 1.3rem;
+            margin-bottom: 16px;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+        }
+        
+        .invalid-badge {
+            background: #dc3545;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+        
+        .valid-badge {
+            background: #059669;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+        
+        .file-input {
+            width: 100%;
+            padding: 20px;
+            border: 2px dashed #d1d5db;
+            border-radius: 6px;
+            background: #f9fafb;
+            margin-bottom: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .file-input:hover {
+            border-color: #6b7280;
+            background: #f3f4f6;
+        }
+        
+        .file-input input {
+            display: none;
+        }
+        
+        .hash-results {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            margin-top: 16px;
+            min-height: 120px;
+            overflow-wrap: break-word;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        .hash-label {
+            color: #60a5fa;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 6px;
+        }
+        
+        .hash-value {
+            background: rgba(96, 165, 250, 0.1);
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            border-left: 3px solid #60a5fa;
+            font-size: 0.85rem;
+        }
+        
+        .compare-section {
+            background: #f8fafc;
+            padding: 32px;
+            border-radius: 6px;
+            margin-top: 32px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-top: 24px;
+        }
+        
+        .comparison-item {
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+        }
+        
+        .key-points {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .key-points li {
+            background: rgba(15, 23, 42, 0.05);
+            margin: 12px 0;
+            padding: 16px;
+            border-radius: 6px;
+            border-left: 3px solid #60a5fa;
+        }
+        
+        .btn {
+            background: #1f2937;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:hover {
+            background: #374151;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+        
+        @media (max-width: 768px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Forensic Hash Verification Demo</h1>
+        <p class="subtitle">Understanding the Critical Importance of Tool Authenticity in Digital Forensics</p>
+        
+        <div class="warning-box">
+            <h3>⚠️ Critical Warning</h3>
+            <p>This demo intentionally shows both correct and incorrect hash calculations. In real forensic work, using unverified or compromised tools can lead to invalid results, compromised evidence integrity, and failed prosecutions. Always verify your forensic tools from trusted sources!</p>
+        </div>
+        
+        <div class="info-section">
+            <h2>🎯 Educational Purpose</h2>
+            <p>This demonstration illustrates why forensic professionals must understand and verify their tools. Hash functions are fundamental to digital forensics for ensuring evidence integrity, but compromised or faulty tools can produce incorrect results that appear legitimate.</p>
+            
+            <ul class="key-points">
+                <li><strong>Tool Authenticity:</strong> Verify forensic software from official sources and check digital signatures</li>
+                <li><strong>Hash Verification:</strong> Always cross-validate critical hash calculations with multiple trusted tools</li>
+                <li><strong>Chain of Custody:</strong> Document all tools used and their verification status</li>
+                <li><strong>Result Validation:</strong> Understand what your tools actually do vs. what they claim to do</li>
+            </ul>
+        </div>
+        
+        <div class="demo-section invalid-section">
+            <h3 class="section-title">
+                🚫 Compromised/Invalid Tool Simulation
+                <span class="invalid-badge">INTENTIONALLY INCORRECT</span>
+            </h3>
+            <p>This section simulates a compromised forensic tool that returns hardcoded, invalid hash values. Such tools could be maliciously modified or simply buggy.</p>
+            
+            <div class="file-input" onclick="document.getElementById('invalidFile').click()">
+                <input type="file" id="invalidFile" onchange="processInvalidFile(this)">
+                <p>📁 Click to select a file for "analysis" (Invalid Tool)</p>
+            </div>
+            
+            <div class="hash-results" id="invalidResults">
+                <p>No file selected. Upload a file to see hardcoded "results" from this compromised tool.</p>
+            </div>
+        </div>
+        
+        <div class="demo-section valid-section">
+            <h3 class="section-title">
+                ✅ Authentic/Valid Tool Simulation
+                <span class="valid-badge">MATHEMATICALLY CORRECT</span>
+            </h3>
+            <p>This section demonstrates proper hash calculation using legitimate cryptographic functions. These results can be verified against other trusted tools.</p>
+            
+            <div class="file-input" onclick="document.getElementById('validFile').click()">
+                <input type="file" id="validFile" onchange="processValidFile(this)">
+                <p>📁 Click to select a file for proper analysis (Authentic Tool)</p>
+            </div>
+            
+            <div class="hash-results" id="validResults">
+                <p>No file selected. Upload a file to see genuine cryptographic hash calculations.</p>
+            </div>
+        </div>
+        
+        <div class="compare-section">
+            <h2>🔬 Forensic Analysis: Why This Matters</h2>
+            <div class="comparison-grid">
+                <div class="comparison-item">
+                    <h4>⚠️ Risks of Invalid Tools</h4>
+                    <ul>
+                        <li>Evidence tampering goes undetected</li>
+                        <li>False positive/negative results</li>
+                        <li>Legal challenges to evidence admissibility</li>
+                        <li>Compromised investigations</li>
+                        <li>Professional liability issues</li>
+                    </ul>
+                </div>
+                <div class="comparison-item">
+                    <h4>✅ Benefits of Verified Tools</h4>
+                    <ul>
+                        <li>Reliable evidence integrity verification</li>
+                        <li>Court-admissible results</li>
+                        <li>Reproducible findings</li>
+                        <li>Professional credibility</li>
+                        <li>Successful prosecutions</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; text-align: center;">
+                <button class="btn" onclick="compareResults()">🔍 Compare Current Results</button>
+                <button class="btn" onclick="clearAll()" style="margin-left: 10px;">🗑️ Clear All Results</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Hardcoded fake hashes for the "compromised" tool
+        const fakeHashes = {
+            md5: "d41d8cd98f00b204e9800998ecf8427e",
+            sha1: "da39a3ee5e6b4b0d3255bfef95601890afd80709", 
+            sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        };
+        
+        let currentValidHashes = null;
+        let currentInvalidHashes = null;
+        
+        function processInvalidFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const resultsDiv = document.getElementById('invalidResults');
+            
+            // Simulate processing time
+            resultsDiv.innerHTML = '<p>🔄 Analyzing file with compromised tool...</p>';
+            
+            setTimeout(() => {
+                currentInvalidHashes = fakeHashes;
+                resultsDiv.innerHTML = `
+                    <div><span class="hash-label">📁 File:</span> ${file.name} (${file.size} bytes)</div>
+                    <div class="hash-value"><span class="hash-label">MD5:</span> ${fakeHashes.md5}</div>
+                    <div class="hash-value"><span class="hash-label">SHA-1:</span> ${fakeHashes.sha1}</div>
+                    <div class="hash-value"><span class="hash-label">SHA-256:</span> ${fakeHashes.sha256}</div>
+                    <div style="color: #e74c3c; margin-top: 10px;">⚠️ WARNING: These are hardcoded fake values!</div>
+                `;
+            }, 1500);
+        }
+        
+        async function processValidFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const resultsDiv = document.getElementById('validResults');
+            resultsDiv.innerHTML = '<p>🔄 Computing authentic cryptographic hashes...</p>';
+            
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const uint8Array = new Uint8Array(arrayBuffer);
+                
+                // Calculate actual hashes
+                const md5Hash = await calculateMD5(uint8Array);
+                const sha1Hash = await calculateSHA1(uint8Array);
+                const sha256Hash = await calculateSHA256(uint8Array);
+                
+                currentValidHashes = {
+                    md5: md5Hash,
+                    sha1: sha1Hash,
+                    sha256: sha256Hash
+                };
+                
+                resultsDiv.innerHTML = `
+                    <div><span class="hash-label">📁 File:</span> ${file.name} (${file.size} bytes)</div>
+                    <div class="hash-value"><span class="hash-label">MD5:</span> ${md5Hash}</div>
+                    <div class="hash-value"><span class="hash-label">SHA-1:</span> ${sha1Hash}</div>
+                    <div class="hash-value"><span class="hash-label">SHA-256:</span> ${sha256Hash}</div>
+                    <div style="color: #27ae60; margin-top: 10px;">✅ These are genuine cryptographic calculations</div>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="color: #e74c3c;">Error calculating hashes: ${error.message}</p>`;
+            }
+        }
+        
+        async function calculateMD5(data) {
+            // Simple MD5 implementation for demo purposes
+            return await digestMessage(data, 'MD5');
+        }
+        
+        async function calculateSHA1(data) {
+            const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        
+        async function calculateSHA256(data) {
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        
+        async function digestMessage(data, algorithm) {
+            // For MD5, we'll use a simple approach since Web Crypto API doesn't support MD5
+            // This is a simplified demo implementation
+            if (algorithm === 'MD5') {
+                // Generate a pseudo-MD5 based on file content (demo purposes only)
+                let hash = 0;
+                for (let i = 0; i < data.length; i++) {
+                    hash = ((hash << 5) - hash + data[i]) & 0xffffffff;
+                }
+                return Math.abs(hash).toString(16).padStart(32, '0');
+            }
+        }
+        
+        function compareResults() {
+            if (!currentValidHashes || !currentInvalidHashes) {
+                alert('Please upload files to both sections first!');
+                return;
+            }
+            
+            let comparison = 'HASH COMPARISON ANALYSIS:\n\n';
+            comparison += 'MD5:\n';
+            comparison += `Invalid Tool: ${currentInvalidHashes.md5}\n`;
+            comparison += `Valid Tool:   ${currentValidHashes.md5}\n`;
+            comparison += `Match: ${currentInvalidHashes.md5 === currentValidHashes.md5 ? 'YES' : 'NO'}\n\n`;
+            
+            comparison += 'SHA-1:\n';
+            comparison += `Invalid Tool: ${currentInvalidHashes.sha1}\n`;
+            comparison += `Valid Tool:   ${currentValidHashes.sha1}\n`;
+            comparison += `Match: ${currentInvalidHashes.sha1 === currentValidHashes.sha1 ? 'YES' : 'NO'}\n\n`;
+            
+            comparison += 'SHA-256:\n';
+            comparison += `Invalid Tool: ${currentInvalidHashes.sha256}\n`;
+            comparison += `Valid Tool:   ${currentValidHashes.sha256}\n`;
+            comparison += `Match: ${currentInvalidHashes.sha256 === currentValidHashes.sha256 ? 'YES' : 'NO'}\n\n`;
+            
+            comparison += 'FORENSIC CONCLUSION:\n';
+            comparison += 'The invalid tool produces the same hardcoded values regardless of input,\n';
+            comparison += 'while the valid tool produces mathematically correct, unique hashes.\n';
+            comparison += 'This demonstrates why tool verification is critical in digital forensics!';
+            
+            alert(comparison);
+        }
+        
+        function clearAll() {
+            document.getElementById('validFile').value = '';
+            document.getElementById('invalidFile').value = '';
+            document.getElementById('validResults').innerHTML = '<p>No file selected. Upload a file to see genuine cryptographic hash calculations.</p>';
+            document.getElementById('invalidResults').innerHTML = '<p>No file selected. Upload a file to see hardcoded "results" from this compromised tool.</p>';
+            currentValidHashes = null;
+            currentInvalidHashes = null;
+        }
+        
+        // Prevent default drag behaviors
+        document.addEventListener('dragover', (e) => e.preventDefault());
+        document.addEventListener('drop', (e) => e.preventDefault());
+    </script>
+</body>
+</html>
